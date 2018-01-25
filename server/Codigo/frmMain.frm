@@ -505,6 +505,8 @@ End Sub
 Private Sub Form_Unload(Cancel As Integer)
 On Error Resume Next
 
+isRunning = False
+
 'Save stats!!!
 Call Statistics.DumpStatistics
 

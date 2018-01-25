@@ -36,6 +36,8 @@ Option Explicit
 Public aDos As New clsAntiDoS
 #End If
 
+Public isRunning As Boolean
+
 Public aClon As New clsAntiMassClon
 Public TrashCollector As New Collection
 
@@ -1006,6 +1008,7 @@ Public Type UserFlags
     Escondido As Byte '¿Esta escondido?
     Comerciando As Boolean '¿Esta comerciando?
     UserLogged As Boolean '¿Esta online?
+    CloseSocketRequest As Boolean
     Meditando As Boolean
     Descuento As String
     Hambre As Byte

@@ -508,7 +508,44 @@ On Error Resume Next
     
     tInicioServer = GetTickCount() And &H7FFFFFFF
     Call InicializaEstadisticas
+    
+    isRunning = True
+    Do While isRunning
+        Call FlushAll
+        DoEvents ' Quiero llorar
+        Sleep 16
+    Loop
+    
 
+End Sub
+
+' Mateo: Funcion que checkea todos los usuarios
+Private Sub FlushAll()
+    Dim i As Long
+    For i = 1 To MaxUsers
+    
+        If UserList(i).ConnIDValida Then
+            If UserList(i).outgoingData.length > 0 Then
+               
+                Dim Ret As Long
+                
+                Ret = WsApiEnviar(i, UserList(i).outgoingData.ReadASCIIStringFixed(UserList(i).outgoingData.length))
+                
+                If Ret <> 0 And Ret <> WSAEWOULDBLOCK Then
+                    ' Close the socket avoiding any critical error
+                    Call CloseSocketSL(i)
+                    Call Cerrar_Usuario(i)
+                End If
+            End If
+            
+            If UserList(i).flags.CloseSocketRequest = True Then
+                Call CloseSocket(i, True)
+                UserList(i).flags.CloseSocketRequest = False
+            End If
+        End If
+    
+    
+    Next i
 End Sub
 
 Function FileExist(ByVal file As String, Optional FileType As VbFileAttribute = vbNormal) As Boolean
@@ -1551,6 +1588,8 @@ Sub PasarSegundo()
 
 On Error GoTo Errhandler
     Dim i As Long
+    
+
     
     For i = 1 To LastUser
         If UserList(i).flags.UserLogged Then

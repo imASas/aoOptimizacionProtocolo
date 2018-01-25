@@ -1365,11 +1365,13 @@ On Error GoTo Errhandler
     'Convert version number to string
     version = CStr(buffer.ReadByte()) & "." & CStr(buffer.ReadByte()) & "." & CStr(buffer.ReadByte())
     
+    'If we got here then packet is complete, copy data back to original queue
+    Call UserList(UserIndex).incomingData.CopyBuffer(buffer) ' Mateo: Tuve que cambiar esto de lugar porque me entraba en loop infinito con los exit sub
+    
     If Not AsciiValidos(UserName) Then
         Call WriteErrorMsg(UserIndex, "Nombre inválido.")
         Call FlushBuffer(UserIndex)
         Call CloseSocket(UserIndex)
-        
         Exit Sub
     End If
     
@@ -1377,7 +1379,6 @@ On Error GoTo Errhandler
         Call WriteErrorMsg(UserIndex, "El personaje no existe.")
         Call FlushBuffer(UserIndex)
         Call CloseSocket(UserIndex)
-        
         Exit Sub
     End If
         
@@ -1398,8 +1399,6 @@ On Error GoTo Errhandler
     End If
 #End If
     
-    'If we got here then packet is complete, copy data back to original queue
-    Call UserList(UserIndex).incomingData.CopyBuffer(buffer)
     
 Errhandler:
     Dim error As Long
@@ -17241,10 +17240,12 @@ Public Sub FlushBuffer(ByVal UserIndex As Integer)
     With UserList(UserIndex).outgoingData
         If .length = 0 Then _
             Exit Sub
+            
+        'Mateo: Por las moscas saco esto, los que tengan ganas, borren todos los FlushBuffer del codigo
         
-        sndData = .ReadASCIIStringFixed(.length)
+        'sndData = .ReadASCIIStringFixed(.length)
         
-        Call EnviarDatosASlot(UserIndex, sndData)
+        'Call EnviarDatosASlot(UserIndex, sndData)
     End With
 End Sub
 

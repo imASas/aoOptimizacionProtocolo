@@ -607,7 +607,7 @@ End Sub
 
 #If UsarQueSocket = 1 Or UsarQueSocket = 2 Then
 
-Sub CloseSocket(ByVal UserIndex As Integer)
+Sub CloseSocket(ByVal UserIndex As Integer, Optional ByVal direct As Boolean = False)
 '***************************************************
 'Author: Unknown
 'Last Modification: -
@@ -615,52 +615,55 @@ Sub CloseSocket(ByVal UserIndex As Integer)
 '***************************************************
 
 On Error GoTo Errhandler
+    If (direct) Then
     
-    If UserIndex = LastUser Then
-        Do Until UserList(LastUser).flags.UserLogged
-            LastUser = LastUser - 1
-            If LastUser < 1 Then Exit Do
-        Loop
-    End If
-    
-    'Call SecurityIp.IpRestarConexion(GetLongIp(UserList(UserIndex).ip))
-    
-    If UserList(UserIndex).ConnID <> -1 Then
-        Call CloseSocketSL(UserIndex)
-    End If
-    
-    'Es el mismo user al que está revisando el centinela??
-    'IMPORTANTE!!! hacerlo antes de resetear así todavía sabemos el nombre del user
-    ' y lo podemos loguear
-    If Centinela.RevisandoUserIndex = UserIndex Then _
-        Call modCentinela.CentinelaUserLogout
-    
-    'mato los comercios seguros
-    If UserList(UserIndex).ComUsu.DestUsu > 0 Then
-        If UserList(UserList(UserIndex).ComUsu.DestUsu).flags.UserLogged Then
-            If UserList(UserList(UserIndex).ComUsu.DestUsu).ComUsu.DestUsu = UserIndex Then
-                Call WriteConsoleMsg(UserList(UserIndex).ComUsu.DestUsu, "Comercio cancelado por el otro usuario", FontTypeNames.FONTTYPE_TALK)
-                Call FinComerciarUsu(UserList(UserIndex).ComUsu.DestUsu)
-                Call FlushBuffer(UserList(UserIndex).ComUsu.DestUsu)
+        If UserIndex = LastUser Then
+            Do Until UserList(LastUser).flags.UserLogged
+                LastUser = LastUser - 1
+                If LastUser < 1 Then Exit Do
+            Loop
+        End If
+        
+        'Call SecurityIp.IpRestarConexion(GetLongIp(UserList(UserIndex).ip))
+        
+        If UserList(UserIndex).ConnID <> -1 Then
+            Call CloseSocketSL(UserIndex)
+        End If
+        
+        'Es el mismo user al que está revisando el centinela??
+        'IMPORTANTE!!! hacerlo antes de resetear así todavía sabemos el nombre del user
+        ' y lo podemos loguear
+        If Centinela.RevisandoUserIndex = UserIndex Then _
+            Call modCentinela.CentinelaUserLogout
+        
+        'mato los comercios seguros
+        If UserList(UserIndex).ComUsu.DestUsu > 0 Then
+            If UserList(UserList(UserIndex).ComUsu.DestUsu).flags.UserLogged Then
+                If UserList(UserList(UserIndex).ComUsu.DestUsu).ComUsu.DestUsu = UserIndex Then
+                    Call WriteConsoleMsg(UserList(UserIndex).ComUsu.DestUsu, "Comercio cancelado por el otro usuario", FontTypeNames.FONTTYPE_TALK)
+                    Call FinComerciarUsu(UserList(UserIndex).ComUsu.DestUsu)
+                    Call FlushBuffer(UserList(UserIndex).ComUsu.DestUsu)
+                End If
             End If
         End If
-    End If
-    
-    'Empty buffer for reuse
-    Call UserList(UserIndex).incomingData.ReadASCIIStringFixed(UserList(UserIndex).incomingData.length)
-    
-    If UserList(UserIndex).flags.UserLogged Then
-        If NumUsers > 0 Then NumUsers = NumUsers - 1
-        Call CloseUser(UserIndex)
         
-        Call EstadisticasWeb.Informar(CANTIDAD_ONLINE, NumUsers)
+        'Empty buffer for reuse
+        Call UserList(UserIndex).incomingData.ReadASCIIStringFixed(UserList(UserIndex).incomingData.length)
+        
+        If UserList(UserIndex).flags.UserLogged Then
+            If NumUsers > 0 Then NumUsers = NumUsers - 1
+            Call CloseUser(UserIndex)
+            
+            Call EstadisticasWeb.Informar(CANTIDAD_ONLINE, NumUsers)
+        Else
+            Call ResetUserSlot(UserIndex)
+        End If
+        
+        UserList(UserIndex).ConnID = -1
+        UserList(UserIndex).ConnIDValida = False
     Else
-        Call ResetUserSlot(UserIndex)
+        UserList(UserIndex).flags.CloseSocketRequest = True
     End If
-    
-    UserList(UserIndex).ConnID = -1
-    UserList(UserIndex).ConnIDValida = False
-    
 Exit Sub
 
 Errhandler:
@@ -829,6 +832,9 @@ Public Function EnviarDatosASlot(ByVal UserIndex As Integer, ByRef Datos As Stri
 
 #If UsarQueSocket = 1 Then '**********************************************
     On Error GoTo Err
+    
+    Call UserList(UserIndex).outgoingData.WriteASCIIStringFixed(Datos)
+    Exit Function
     
     Dim Ret As Long
     
